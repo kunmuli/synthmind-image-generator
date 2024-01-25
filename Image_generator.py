@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DEBUG = os.getenv("DEBUG", True)
+DEBUG = os.getenv("DEBUG", False)
 DEFAULT_SEED = os.getenv("DEFAULT_SEED", 12345)
 MAX_SEED = 4294967295
 MODEL_ID = "stability.stable-diffusion-xl-v1"
@@ -120,8 +120,9 @@ if __name__ == '__main__':
         # Display prompts on the sidebar
         if st.session_state.prompts:
             st.sidebar.subheader("Prompts in Session:")
-            for ip in st.session_state.prompts:
-                st.sidebar.caption(ip)
+            for idx, ip in enumerate(st.session_state.prompts):
+                # Display each prompt as text
+                st.text(ip)
 
     prompt = st.text_input('Input your prompt')
     # Append prompt to session state
