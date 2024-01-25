@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DEBUG = os.getenv("DEBUG", False)
+DEBUG = os.getenv("DEBUG", True)
 DEFAULT_SEED = os.getenv("DEFAULT_SEED", 12345)
 MAX_SEED = 4294967295
 MODEL_ID = "stability.stable-diffusion-xl-v1"
@@ -49,7 +49,6 @@ STYLES_MAP = {
     "Tile Texture": "tile-texture",
     "None": "None",
 }
-
 
 bedrock_runtime = boto3.client('bedrock-runtime')
 
@@ -98,6 +97,11 @@ if __name__ == '__main__':
     st.set_page_config(
         page_title='Amazon Bedrock Stable Diffusion', page_icon='./bedrock.png')
     st.title('Stable Diffusion Image Generator with Amazon Bedrock')
+
+    # Initiate prompts array
+    if 'prompts' not in st.session_state:
+        st.session_state.prompts = []
+
     # Create a sidebar with text examples
     with st.sidebar:
         # Selectbox
@@ -113,7 +117,17 @@ if __name__ == '__main__':
             on_change=update_numin, label_visibility="hidden")
         seed = seed_input | seed_slider
 
+        # Display prompts on the sidebar
+        if st.session_state.prompts:
+            st.sidebar.subheader("Prompts in Session:")
+            for ip in st.session_state.prompts:
+                st.sidebar.caption(ip)
+
     prompt = st.text_input('Input your prompt')
+    # Append prompt to session state
+    if prompt:
+        st.session_state.prompts.append(prompt)
+
     if not prompt:
         st.warning("Please input a prompt")
         # Block the image generation if there is no input prompt
@@ -131,22 +145,26 @@ if __name__ == '__main__':
                     print("Generate image with Style:{} with Seed:{} and Prompt: {}".format(
                         style_key, seed, prompt))
                     # Send request to Bedrock
-                    image_data = gen_img_from_bedrock(
-                        prompt=prompt, style=style, seed=seed)
-                    st.success('Generated stable diffusion image')
+                    try:
+                        image_data = gen_img_from_bedrock(prompt=prompt, style=style, seed=seed)
+                        st.success('Generated stable diffusion image')
+                    except Exception as e:
+                        st.error(f"Error generating image: {str(e)}")
 
     if st.session_state.get("image_data", None):
         image = get_image(st.session_state.image_data)
         st.image(image)
 
-    # Download button for the generated image
+        # Show download button and inform the user about the download
+        st.info("Click the 'Download Image' button to save the generated image.")
+
+        # Download button for the generated image
         download_button = st.download_button(
             label="Download Image",
             data=st.session_state.image_data,
             file_name="generated_image.png",
             key="download_button"
         )
-
 
     if DEBUG:
         st.write(st.session_state)
